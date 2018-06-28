@@ -10,10 +10,6 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 
-
-# In[6]:
-
-
 # Image preprocessing
 transform = transforms.Compose([
     transforms.Resize(40),
@@ -28,14 +24,11 @@ train_dataset = dsets.CIFAR10(
     root='./data/',
     train=True,
     transform=transform,
-    download=False)
+    download=True)
 test_dataset = dsets.CIFAR10(
     root='./data',
     train=False,
     transform=transforms.ToTensor())
-
-
-# In[8]:
 
 
 # Data loader (input pipeline)
@@ -47,10 +40,6 @@ test_loader = torch.utils.data.DataLoader(
     dataset=test_dataset,
     batch_size=100,
     shuffle=False)
-
-
-# In[33]:
-
 
 # 3x3 convolution
 def conv3x3(in_channels, out_channels, stride=1):
@@ -79,10 +68,6 @@ class ResidualBlock(nn.Module):
         out += residual
         out = self.relu(out)
         return out
-
-
-# In[34]:
-
 
 # ResNet Module
 class ResNet(nn.Module):
@@ -123,15 +108,7 @@ class ResNet(nn.Module):
         out = self.fc(out)
         return out
 
-
-# In[35]:
-
-
 resnet = ResNet(ResidualBlock, [2, 2, 2, 2]).cuda()
-
-
-# In[ ]:
-
 
 criterion = nn.CrossEntropyLoss()
 lr = 0.001
@@ -156,3 +133,17 @@ for epoch in range(80):
             lr /= 3
             optimizer = torch.optim.Adam(resnet.parameters, lr=lr)
 
+# test
+correct = 0
+total = 0
+for images, labels in test_loader:
+    images = Variable(images.cuda())
+    outputs = resnet(images)
+    _, predicted = torch.max(outputs.data, 1)
+    total += labels.size(0)
+    correct += (predicted == labels).sum()
+
+print('Accuracy of the model on the test images: %d %%' % (100 * correct / total))
+
+# save the model
+torch.save(resnet.state_dict(), 'resnet.pkl')
